@@ -1,22 +1,70 @@
-import openai
-import gradio  
-openai.api_key = 'api_key_here'
+# python 3.8 (3.8.16) or it doesn't work
+# pip install streamlit streamlit-chat langchain python-dotenv
+import streamlit as st
+from streamlit_chat import message
+from dotenv import load_dotenv
+import os
 
-messages = [{"role": "system", "content": """You are a Lawyer who knows the IPC section very well
-you will provide applicable IPC sections for there crimes clients on prompting  there crimes also with reference to IPC 
-to provide legal advice, argue cases in court, and make judgments"""}]
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import (
+    SystemMessage,
+    HumanMessage,
+    AIMessage
+)
 
-def CustomChatGPT(user_input):
-    messages.append({"role": "user", "content": user_input})
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages
+
+def init():
+    # Load the OpenAI API key from the environment variable
+    load_dotenv()
+
+    # test that the API key exists
+
+    if os.getenv("OPENAI_API_KEY") is None or os.getenv("OPENAI_API_KEY") == "":
+        print("OPENAI_API_KEY is not set")
+        exit(1)
+    else:
+        print("OPENAI_API_KEY is set")
+
+    # setup streamlit page
+    st.set_page_config(
+        page_title="Your own ChatGPT",
+        page_icon="🤖"
     )
-    ChatGPT_reply = response["choices"][0]["message"]["content"]
-    messages.append({"role": "assistant", "content": ChatGPT_reply})
-    return ChatGPT_reply
 
 
-demo = gradio.Interface(fn=CustomChatGPT, inputs="text", outputs="text", title="IPC AI bot")
+def main():
+    init()
 
-demo.launch(share=True)
+    chat = ChatOpenAI(temperature=0)
+
+    # initialize message history
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            SystemMessage(content="You are a helpful assistant.")
+        ]
+
+    st.header("Your own ChatGPT 🤖")
+
+    # sidebar with user input
+    with st.sidebar:
+        user_input = st.text_input("Your message: ", key="user_input")
+
+        # handle user input
+        if user_input:
+            st.session_state.messages.append(HumanMessage(content=user_input))
+            with st.spinner("Thinking..."):
+                response = chat(st.session_state.messages)
+            st.session_state.messages.append(
+                AIMessage(content=response.content))
+
+    # display message history
+    messages = st.session_state.get('messages', [])
+    for i, msg in enumerate(messages[1:]):
+        if i % 2 == 0:
+            message(msg.content, is_user=True, key=str(i) + '_user')
+        else:
+            message(msg.content, is_user=False, key=str(i) + '_ai')
+
+
+if __name__ == '__main__':
+    main()

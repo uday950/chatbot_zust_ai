@@ -1,6 +1,6 @@
 import openai
 import gradio  
-openai.api_key = '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'
+openai.api_key = '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'
 
 messages = [{"role": "system", "content": """You are a Lawyer who knows the IPC section very well
 you will provide applicable IPC sections for there crimes clients on prompting  there crimes also with reference to IPC 
